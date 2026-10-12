@@ -1,26 +1,76 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card-bg: #ffffff;
+  --card-border: #e2e8f0;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #090d16;
+  --foreground: #f8fafc;
+  --card-bg: #13171f;
+  --card-border: #262d3d;
 }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  min-height: 100vh;
+}
+
+/* Ambient glow & subtle grid depth background */
+.ambient-grid-background {
+  background-color: var(--background);
+  background-image:
+    /* Subtle grid dots */
+    radial-gradient(rgba(148, 163, 184, 0.22) 1px, transparent 1px),
+    /* Top violet/purple ambient glow */
+    radial-gradient(circle at 50% 10%, rgba(139, 92, 246, 0.08) 0%, rgba(99, 102, 241, 0.04) 30%, transparent 65%),
+    /* Bottom teal/emerald ambient glow */
+    radial-gradient(circle at 80% 85%, rgba(20, 184, 166, 0.06) 0%, transparent 45%);
+  background-size: 28px 28px, 100% 100%, 100% 100%;
+}
+
+.dark .ambient-grid-background {
+  background-color: #090d16;
+  background-image:
+    /* Subtle grid dots with dark luminescence */
+    radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+    /* Top vivid purple ambient glow behind main card */
+    radial-gradient(circle at 50% 10%, rgba(139, 92, 246, 0.22) 0%, rgba(99, 102, 241, 0.12) 35%, transparent 70%),
+    /* Bottom right teal/emerald glow */
+    radial-gradient(circle at 85% 85%, rgba(20, 184, 166, 0.16) 0%, rgba(16, 185, 129, 0.06) 25%, transparent 55%);
+  background-size: 28px 28px, 100% 100%, 100% 100%;
+}
+
+/* KaTeX formula contrast enhancement */
+.katex {
+  font-size: 1.05em;
+  color: inherit;
+}
+
+.katex-display {
+  color: inherit;
+}
+
+/* Smooth fade-in animation */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fadeInScale 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
