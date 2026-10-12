@@ -381,12 +381,22 @@ export async function sendChatMessage(
 
     if (res.ok) {
       const data = await res.json();
-      if (data && typeof data.reply === "string" && data.reply.trim().length > 0) {
+      const replyText =
+        typeof data?.reply === "string"
+          ? data.reply
+          : typeof data?.text === "string"
+          ? data.text
+          : "";
+
+      if (replyText.trim().length > 0) {
         return {
-          reply: data.reply,
-          isLiveAI: Boolean(data.isLiveAI),
+          reply: replyText,
+          isLiveAI:
+            data.isLiveAI !== undefined
+              ? Boolean(data.isLiveAI)
+              : data.status === "online",
           model: data.model,
-          status: data.status,
+          status: data.status || "online",
         };
       }
     }
