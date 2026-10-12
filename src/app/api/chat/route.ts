@@ -80,9 +80,12 @@ export async function POST(req: NextRequest) {
       // Fallback thông minh để trang web không bị sập nếu Bạn 5 chưa kịp điền key
       const lastUserMsg = messages?.filter(m => m.role === "user").pop()?.content || "";
       const fallbackText = generateLocalAIResponse(lastUserMsg, questionContext);
+      const warnMsg = `🦉 *[Thông báo từ Cú Vàng]*: Bạn 5 ơi, hãy tạo file \`.env.local\` và điền \`GEMINI_API_KEY\` để kích hoạt AI thật nhé!\n\n${fallbackText}`;
       return NextResponse.json({
         status: "no_api_key",
-        text: `🦉 *[Thông báo từ Cú Vàng]*: Bạn 5 ơi, hãy tạo file \`.env.local\` và điền \`GEMINI_API_KEY\` để kích hoạt AI thật nhé!\n\n${fallbackText}`,
+        isLiveAI: false,
+        reply: warnMsg,
+        text: warnMsg,
       });
     }
 
@@ -111,18 +114,24 @@ Quy tắc trả lời:
       },
     });
 
-    const candidateText = response?.text?.trim();
+    const candidateText = response?.text?.trim() || "Cú Vàng đang lắng nghe em đây! Em hãy hỏi Cú Vàng về bài toán này nhé! ⭐";
 
     return NextResponse.json({
       status: "online",
-      text: candidateText || "Cú Vàng đang lắng nghe em đây! Em hãy hỏi Cú Vàng về bài toán này nhé! ⭐",
+      isLiveAI: true,
+      reply: candidateText,
+      text: candidateText,
+      model,
     });
   } catch (error: unknown) {
     console.error("Lỗi API Gemini:", error);
+    const errorMsg = "Ôi, Cú Vàng đang bị mất sóng một chút xíu. Bạn 5 hãy kiểm tra lại kết nối mạng hoặc API Key nhé!";
     return NextResponse.json(
       {
         status: "api_error",
-        text: "Ôi, Cú Vàng đang bị mất sóng một chút xíu. Bạn 5 hãy kiểm tra lại kết nối mạng hoặc API Key nhé!",
+        isLiveAI: false,
+        reply: errorMsg,
+        text: errorMsg,
       },
       { status: 200 }
     );
