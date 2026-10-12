@@ -2,11 +2,30 @@ import { NextRequest, NextResponse } from "next/server";
 import { GoogleGenAI } from "@google/genai";
 import { generateLocalAIResponse, QuestionContext } from "@/lib/aiChatService";
 
+/**
+ * =========================================================================
+ * 👤 NHIỆM VỤ CỦA BẠN 5: Kết nối Trí tuệ Nhân tạo Gemini AI (Backend API)
+ * =========================================================================
+ * Yêu cầu:
+ * 1. Lấy API Key miễn phí tại: https://aistudio.google.com/
+ * 2. Tạo file `.env.local` ở thư mục gốc của dự án và điền:
+ *    GEMINI_API_KEY=khóa_api_của_bạn_ở_đây
+ * 3. Khởi tạo GoogleGenAI SDK từ `@google/genai`:
+ *    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+ * 4. Gọi model `gemini-2.5-flash` với lời nhắc hệ thống (System Instruction):
+ *    - Đóng vai "Gia sư Cú Vàng", tính tình ấm áp, kiên nhẫn.
+ *    - Giải thích toán tiểu học bằng đồ vật gần gũi (chia kẹo 🍬, cắt bánh 🍕, que tính).
+ *    - Khích lệ bé dù làm đúng hay sai.
+ * 5. Trả về kết quả JSON dạng: { status: "online", text: responseText }
+ * =========================================================================
+ */
+
 interface ChatTurn {
   role: "user" | "model";
   parts: Array<{ text: string }>;
 }
 
+// Hàm hỗ trợ gom lịch sử tin nhắn chuẩn cấu trúc Gemini
 function buildGeminiContents(
   messages: Array<{ role: "user" | "assistant"; content: string }>,
   questionTitle: string
@@ -19,27 +38,21 @@ function buildGeminiContents(
     const text = m.content?.trim();
     if (!text) continue;
 
-    // Ensure the conversation starts with a user turn
     if (contents.length === 0 && role === "model") {
       contents.push({
         role: "user",
-        parts: [{ text: `Em đang tìm hiểu bài toán: "${questionTitle || "Toán Tiểu Học"}". Bạn AI hãy chào em và đồng hành cùng em nhé!` }],
+        parts: [{ text: `Em đang học bài toán: "${questionTitle || "Toán Tiểu Học"}". Bạn Cú Vàng hãy chào em nhé!` }],
       });
     }
 
-    // Merge consecutive turns with the same role to strictly alternate turns
     const lastTurn = contents[contents.length - 1];
     if (lastTurn && lastTurn.role === role) {
       lastTurn.parts.push({ text });
     } else {
-      contents.push({
-        role,
-        parts: [{ text }],
-      });
+      contents.push({ role, parts: [{ text }] });
     }
   }
 
-  // Ensure conversation ends with a user turn for Gemini generation
   const lastTurn = contents[contents.length - 1];
   if (!lastTurn || lastTurn.role !== "user") {
     contents.push({
@@ -59,84 +72,59 @@ export async function POST(req: NextRequest) {
       questionContext: QuestionContext;
     };
 
-    if (!messages || !Array.isArray(messages) || messages.length === 0) {
-      return NextResponse.json(
-        { error: "Tin nhắn không được để trống." },
-        { status: 400 }
-      );
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    // 👇 TODO [BẠN 5]: Kiểm tra khóa API và gọi model Gemini thật
+    if (!apiKey) {
+      console.warn("⚠️ [Bạn 5 ơi] Chưa tìm thấy GEMINI_API_KEY trong file .env.local!");
+      // Fallback thông minh để trang web không bị sập nếu Bạn 5 chưa kịp điền key
+      const lastUserMsg = messages?.filter(m => m.role === "user").pop()?.content || "";
+      const fallbackText = generateLocalAIResponse(lastUserMsg, questionContext);
+      return NextResponse.json({
+        status: "no_api_key",
+        text: `🦉 *[Thông báo từ Cú Vàng]*: Bạn 5 ơi, hãy tạo file \`.env.local\` và điền \`GEMINI_API_KEY\` để kích hoạt AI thật nhé!\n\n${fallbackText}`,
+      });
     }
 
-    const lastUserMessage =
-      [...messages].reverse().find((m) => m.role === "user")?.content ||
-      messages[messages.length - 1]?.content ||
-      "";
-    const apiKey = process.env.GEMINI_API_KEY?.trim();
+    // Khởi tạo Gemini AI Client
+    const ai = new GoogleGenAI({ apiKey });
+    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
-    if (apiKey) {
-      try {
-        const ai = new GoogleGenAI({ apiKey });
-        const modelName = process.env.GEMINI_MODEL?.trim() || "gemini-2.5-flash";
+    const systemInstruction = `Bạn là "Cú Vàng" 🦉 - Gia sư Toán tiểu học vui vẻ, kiên nhẫn và tận tâm dành cho học sinh Lớp 1 - Lớp 5.
+Bối cảnh bài toán hiện tại:
+- Đề bài: ${questionContext?.title || "Toán tiểu học"}
+- Lý thuyết: ${questionContext?.context || "Phép tính cơ bản"}
+Quy tắc trả lời:
+1. Luôn dùng hình ảnh thực tế dễ hiểu: chia kẹo 🍬, quả cam 🍊, lát bánh pizza 🍕, que tính.
+2. Xưng hô thân mật: "Cú Vàng" và "Em" hoặc "Bạn nhỏ".
+3. Khi bé hỏi "vì sao lại vậy", hãy giải thích từng bước chậm rãi từ đầu như đang kể chuyện.
+4. Trình bày công thức bằng KaTeX (đặt trong $...$).`;
 
-        const systemInstruction = `Bạn là Gia sư Cú Vàng 🦉 - một gia sư Toán tiểu học vui vẻ, kiên nhẫn và tận tâm. Nhiệm vụ của bạn là giải thích các bài toán lớp 1-5 cho học sinh nhỏ tuổi hiểu bản chất.
-Nguyên tắc sư phạm:
-1. Ngôn ngữ: Tiếng Việt trong sáng, ngắn gọn, xưng hô "Thầy/Cô - Em" hoặc "Cú Vàng - Bạn nhỏ".
-2. Giải thích bản chất bằng ví dụ thực tế (cái kẹo 🍬, quả cam, quả táo 🍎, que tính, lát bánh pizza 🍕, hộp bút ✏️) thay vì công thức hàn lâm.
-3. Luôn động viên, khích lệ khi bé làm đúng hoặc sai. Nói chuyện nhẹ nhàng, ấm áp.
-4. Khi bé hỏi "vì sao lại vậy", hãy giải thích từng bước chậm rãi từ đầu như đang kể một câu chuyện vui.
-5. Mọi công thức hoặc phép tính nếu có hãy định dạng KaTeX: dùng $...$ cho công thức nội dòng (ví dụ: $4 \\times 6 = 24$, $\\frac{3}{8}$) và $$...$$ cho công thức khối nổi bật.
+    const contents = buildGeminiContents(messages, questionContext?.title || "");
 
-Ngữ cảnh bài toán hiện tại:
-- Đề bài: ${questionContext?.title || "Toán Tiểu Học"}
-- Kiến thức trọng tâm: ${questionContext?.context || ""}
-- Học sinh đã chọn: ${questionContext?.selectedOption?.key || "Chưa rõ"} - ${questionContext?.selectedOption?.text || ""} (${questionContext?.selectedOption?.isCorrect ? "ĐÚNG" : "CHƯA ĐÚNG"})
-- Nhận xét phương án: ${questionContext?.selectedOption?.feedback || ""}`;
-
-        const contents = buildGeminiContents(messages, questionContext?.title || "Toán Tiểu Học");
-
-        const response = await ai.models.generateContent({
-          model: modelName,
-          contents,
-          config: {
-            systemInstruction,
-            temperature: 0.7,
-          },
-        });
-
-        const generatedText = response.text;
-        if (!generatedText || generatedText.trim().length === 0) {
-          throw new Error("Phản hồi từ Gemini API rỗng");
-        }
-
-        return NextResponse.json({
-          reply: generatedText.trim(),
-          isLiveAI: true,
-          model: modelName,
-          status: "online",
-        });
-      } catch (geminiError) {
-        console.warn("Lỗi gọi Gemini API qua @google/genai, chuyển sang fallback:", geminiError);
-        const errorMsg = geminiError instanceof Error ? geminiError.message : String(geminiError);
-        const localReply = generateLocalAIResponse(lastUserMessage, questionContext);
-        return NextResponse.json({
-          reply: `${localReply}\n\n> ⚠️ *Chế độ ngoại tuyến: Không thể kết nối với Gemini (${errorMsg.slice(0, 120)}...). Gia sư Cú Vàng tự động trả lời bằng dữ liệu bài học.*`,
-          isLiveAI: false,
-          status: "api_error",
-        });
-      }
-    }
-
-    // Fallback thông minh khi chưa có GEMINI_API_KEY
-    const localReply = generateLocalAIResponse(lastUserMessage, questionContext);
-    return NextResponse.json({
-      reply: `${localReply}\n\n> 💡 *Chế độ ngoại tuyến: Chưa cấu hình GEMINI_API_KEY. Hãy thêm khóa API vào file \`.env.local\` để trò chuyện trực tiếp cùng Gemini AI siêu thông minh!*`,
-      isLiveAI: false,
-      status: "no_api_key",
+    const response = await ai.models.generateContent({
+      model,
+      contents,
+      config: {
+        systemInstruction,
+        temperature: 0.7,
+      },
     });
-  } catch (error) {
-    console.error("API route error:", error);
+
+    const candidateText = response?.text?.trim();
+
+    return NextResponse.json({
+      status: "online",
+      text: candidateText || "Cú Vàng đang lắng nghe em đây! Em hãy hỏi Cú Vàng về bài toán này nhé! ⭐",
+    });
+  } catch (error: unknown) {
+    console.error("Lỗi API Gemini:", error);
     return NextResponse.json(
-      { error: "Đã xảy ra lỗi khi xử lý tin nhắn." },
-      { status: 500 }
+      {
+        status: "api_error",
+        text: "Ôi, Cú Vàng đang bị mất sóng một chút xíu. Bạn 5 hãy kiểm tra lại kết nối mạng hoặc API Key nhé!",
+      },
+      { status: 200 }
     );
   }
 }

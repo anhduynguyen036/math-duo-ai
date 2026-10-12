@@ -34,6 +34,22 @@ interface QuestionAnswerState {
   isSubmitted: boolean;
 }
 
+/**
+ * =========================================================================
+ * 👤 NHIỆM VỤ CỦA BẠN 3: Kỹ sư Giao diện Thẻ Bài tập Trắc nghiệm (QuizCard)
+ * =========================================================================
+ * Yêu cầu:
+ * 1. Hiển thị đề bài câu hỏi và danh sách 4 lựa chọn A, B, C, D (bo tròn, chữ to dễ đọc).
+ * 2. Trạng thái CHƯA nộp bài:
+ *    - Cho phép học sinh click chọn 1 đáp án.
+ *    - Nút "Explain" ở thanh footer dưới cùng phải HOÀN TOÀN ẨN ĐI.
+ * 3. Trạng thái ĐÃ nộp bài:
+ *    - Đáp án đúng: Viền xanh lá (#22c55e), hiện badge "✓ Đúng rồi!".
+ *    - Đáp án sai đã chọn: Viền đỏ (#ef4444), hiện badge "✕ Chưa chính xác".
+ *    - Hiển thị dòng giải thích (feedback) của từng lựa chọn.
+ *    - Nút "Explain" ở thanh footer xuất hiện mượt mà để học sinh mở khung chat AI.
+ * =========================================================================
+ */
 export function QuizCard({
   question,
   questions,

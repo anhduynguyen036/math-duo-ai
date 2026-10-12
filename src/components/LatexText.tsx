@@ -10,23 +10,38 @@ export interface LatexTextProps {
 }
 
 /**
- * LatexText parses and renders text with LaTeX formulas ($...$ for inline, $$...$$ for block)
- * and simple markdown enhancements (bold **text**, newlines, code spans).
+ * =========================================================================
+ * 👤 NHIỆM VỤ CỦA BẠN 2: Hiển thị công thức Toán học bằng KaTeX
+ * =========================================================================
+ * Mục tiêu:
+ * Nhận vào một chuỗi `text` có thể chứa công thức toán nằm giữa dấu $...$
+ * (ví dụ: "Bạn có $1/2$ chiếc bánh pizza") và dùng thư viện `katex` để hiển thị
+ * ra phân số, dấu nhân $\times$, số mũ đẹp mắt.
+ * 
+ * Các bước thực hiện:
+ * 1. Dùng biểu thức chính quy Regex tách chuỗi thành các phần:
+ *    - Đoạn toán nội dòng: nằm giữa dấu $...$
+ *    - Đoạn toán khối: nằm giữa dấu $$...$$
+ *    - Đoạn chữ bình thường
+ * 2. Gọi hàm `katex.renderToString(formula, { displayMode: boolean, throwOnError: false })`
+ * 3. Trả về thẻ <span dangerouslySetInnerHTML={{ __html: html }} />
+ * =========================================================================
  */
 export function LatexText({ text, className = "" }: LatexTextProps) {
   const renderedContent = useMemo(() => {
     if (!text || typeof text !== "string") return null;
 
-    // Splits into math tokens ($$...$$ and $...$) while keeping non-math text
+    // 👇 TODO [BẠN 2]: Dùng Regex để tách chuỗi chứa công thức toán
+    // Gợi ý: const mathRegex = /(\$\$[\s\S]*?\$\$|\$(?:[^\$\n]|\\\$)+?\$)/g;
     const mathRegex = /(\$\$[\s\S]*?\$\$|\$(?:[^\$\n]|\\\$)+?\$)/g;
     const parts = text.split(mathRegex);
 
     return parts.map((part, index) => {
-      // 1. Block math: $$ ... $$
+      // 1. Khối toán học lớn: $$ ... $$
       if (part.startsWith("$$") && part.endsWith("$$") && part.length >= 4) {
         const formula = part.slice(2, -2).trim();
-        if (!formula) return <span key={`block-${index}`}>{part}</span>;
         try {
+          // 👇 TODO [BẠN 2]: Gọi katex.renderToString với displayMode: true
           const html = katex.renderToString(formula, {
             displayMode: true,
             throwOnError: false,
@@ -43,11 +58,11 @@ export function LatexText({ text, className = "" }: LatexTextProps) {
         }
       }
 
-      // 2. Inline math: $ ... $
+      // 2. Công thức toán nội dòng: $ ... $
       if (part.startsWith("$") && part.endsWith("$") && part.length >= 2) {
         const formula = part.slice(1, -1).trim();
-        if (!formula) return <span key={`inline-${index}`}>{part}</span>;
         try {
+          // 👇 TODO [BẠN 2]: Gọi katex.renderToString với displayMode: false
           const html = katex.renderToString(formula, {
             displayMode: false,
             throwOnError: false,
@@ -64,53 +79,16 @@ export function LatexText({ text, className = "" }: LatexTextProps) {
         }
       }
 
-      // 3. Plain text with basic markdown formatting (**bold**, *italic*, `code`, newlines)
+      // 3. Chữ thường (Text thông thường)
       return (
         <span key={`text-${index}`} className="whitespace-pre-wrap">
-          {formatMarkdownText(part, index)}
+          {part}
         </span>
       );
     });
   }, [text]);
 
   return <span className={`inline-block w-full ${className}`}>{renderedContent}</span>;
-}
-
-/**
- * Helper to render bold **text**, `code`, and bullet lists within plain text segments
- */
-function formatMarkdownText(segment: string, parentIndex: number): React.ReactNode {
-  // Regex to match **bold**, `code`, or *italic*
-  const mdRegex = /(\*\*[\s\S]+?\*\*|`[^`]+`|\*[^\*\n]+?\*)/g;
-  const segments = segment.split(mdRegex);
-
-  return segments.map((item, i) => {
-    if (item.startsWith("**") && item.endsWith("**") && item.length >= 4) {
-      return (
-        <strong key={`b-${parentIndex}-${i}`} className="font-semibold text-slate-900 dark:text-slate-100">
-          {item.slice(2, -2)}
-        </strong>
-      );
-    }
-    if (item.startsWith("*") && item.endsWith("*") && item.length >= 2) {
-      return (
-        <em key={`em-${parentIndex}-${i}`} className="italic opacity-90">
-          {item.slice(1, -1)}
-        </em>
-      );
-    }
-    if (item.startsWith("`") && item.endsWith("`") && item.length >= 2) {
-      return (
-        <code
-          key={`c-${parentIndex}-${i}`}
-          className="px-1.5 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 text-violet-600 dark:text-violet-300 font-mono text-xs"
-        >
-          {item.slice(1, -1)}
-        </code>
-      );
-    }
-    return item;
-  });
 }
 
 export default LatexText;

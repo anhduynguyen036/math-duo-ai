@@ -9,6 +9,21 @@ export interface ThemeToggleProps {
 
 const THEME_STORAGE_KEY = "math-duo-theme";
 
+/**
+ * =========================================================================
+ * 👤 NHIỆM VỤ CỦA BẠN 1: Nút bấm chuyển đổi Theme Sáng / Tối (Dark / Light)
+ * =========================================================================
+ * Yêu cầu:
+ * 1. Khi người dùng bấm nút:
+ *    - Nếu đang là 'light' -> thêm class 'dark' vào thẻ <html class="dark">
+ *    - Nếu đang là 'dark' -> gỡ class 'dark' khỏi thẻ <html>
+ * 2. Lưu trạng thái vào `localStorage` với key 'math-duo-theme' để khi F5 tải lại trang
+ *    vẫn giữ nguyên giao diện người dùng đã chọn.
+ * 3. Hiển thị icon Mặt trời (Sun) khi ở Dark mode và icon Mặt trăng (Moon) khi ở Light mode.
+ * =========================================================================
+ */
+
+// 👇 TODO [BẠN 1]: Hàm áp dụng theme vào thẻ <html> và lưu vào localStorage
 function applyTheme(mode: "light" | "dark") {
   if (typeof document === "undefined") return;
   const root = document.documentElement;
@@ -22,7 +37,7 @@ function applyTheme(mode: "light" | "dark") {
   try {
     localStorage.setItem(THEME_STORAGE_KEY, mode);
   } catch {
-    // Ignore storage restrictions
+    // Bỏ qua nếu trình duyệt chặn localStorage
   }
 }
 
@@ -60,37 +75,38 @@ function getServerSnapshot(): "dark" | "light" {
 }
 
 export function ThemeToggle({ className = "" }: ThemeToggleProps) {
+  // Lắng nghe trạng thái class 'dark' trên <html>
   const theme = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
   const isDark = theme === "dark";
 
-  const toggleTheme = () => {
-    const nextTheme = isDark ? "light" : "dark";
-    applyTheme(nextTheme);
+  // 👇 TODO [BẠN 1]: Viết hàm xử lý khi click nút đổi theme
+  const handleToggle = () => {
+    applyTheme(isDark ? "light" : "dark");
   };
 
   return (
     <button
       type="button"
-      onClick={toggleTheme}
-      aria-label={isDark ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối"}
+      onClick={handleToggle}
+      className={`relative inline-flex items-center justify-center p-2.5 rounded-2xl
+        transition-all duration-200 border cursor-pointer
+        bg-white/80 dark:bg-slate-900/80
+        text-slate-700 dark:text-slate-200
+        border-slate-200 dark:border-slate-800
+        hover:border-violet-400 dark:hover:border-violet-500
+        shadow-sm hover:shadow
+        focus:outline-none focus:ring-2 focus:ring-violet-500/50 ${className}`}
+      aria-label="Chuyển đổi giao diện Sáng / Tối"
       title={isDark ? "Chuyển sang giao diện Sáng" : "Chuyển sang giao diện Tối"}
-      className={`group relative inline-flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300 cursor-pointer border select-none active:scale-95 ${
-        isDark
-          ? "bg-[#181c24] hover:bg-[#222836] border-[#2b3548] text-amber-400 hover:text-amber-300 shadow-md shadow-black/25"
-          : "bg-white hover:bg-slate-50 border-slate-200 text-slate-700 hover:text-slate-900 shadow-sm shadow-slate-200"
-      } ${className}`}
     >
-      <span className="sr-only">
-        {isDark ? "Switch to Light Mode" : "Switch to Dark Mode"}
-      </span>
+      {/* Icon thay đổi theo trạng thái theme */}
       {isDark ? (
-        <Sun className="w-5 h-5 transition-transform duration-300 group-hover:rotate-45 text-amber-400" />
+        <Sun className="w-5 h-5 text-amber-400 transition-transform duration-300 rotate-0 hover:rotate-90" />
       ) : (
-        <Moon className="w-5 h-5 transition-transform duration-300 group-hover:-rotate-12 text-indigo-600" />
+        <Moon className="w-5 h-5 text-violet-600 transition-transform duration-300 rotate-0 hover:-rotate-12" />
       )}
     </button>
   );
 }
 
 export default ThemeToggle;
-

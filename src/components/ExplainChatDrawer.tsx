@@ -47,6 +47,20 @@ function createInitialWelcomeMessage(
   };
 }
 
+/**
+ * =========================================================================
+ * 👤 NHIỆM VỤ CỦA BẠN 6: Kỹ sư Giao diện Khung Chat AI (ExplainChatDrawer)
+ * =========================================================================
+ * Yêu cầu:
+ * 1. Khung Drawer trượt ra từ mép phải màn hình khi học sinh bấm "Explain".
+ * 2. Giữ màn hình bài tập bên trái rõ ràng, KHÔNG dùng backdrop-blur để học sinh
+ *    vừa quan sát đề bài vừa nhắn tin với Cú Vàng.
+ * 3. Danh sách tin nhắn chat hai chiều (học sinh và Cú Vàng), hỗ trợ KaTeX.
+ * 4. Ô nhập tin nhắn tự co giãn chiều cao linh hoạt, ẩn thanh cuộn dọc (scrollbar).
+ * 5. Bổ sung thanh nút chèn ký hiệu nhanh (+, -, ×, ÷, 🍎, 🍕) và gửi request đến
+ *    API /api/chat của Bạn 5.
+ * =========================================================================
+ */
 export function ExplainChatDrawer({
   isOpen,
   onClose,
