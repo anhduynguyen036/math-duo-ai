@@ -105,14 +105,38 @@ Quy tắc trả lời:
 
     const contents = buildGeminiContents(messages, questionContext?.title || "");
 
-    const response = await ai.models.generateContent({
-      model,
-      contents,
-      config: {
-        systemInstruction,
-        temperature: 0.7,
-      },
-    });
+    const preferredModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    const fallbackModel = "gemini-2.0-flash";
+
+    let response;
+    let usedModel = preferredModel;
+
+    try {
+      response = await ai.models.generateContent({
+        model: preferredModel,
+        contents,
+        config: {
+          systemInstruction,
+          temperature: 0.7,
+        },
+      });
+    } catch (err: unknown) {
+      const errStr = String(err);
+      if (errStr.includes("503") || errStr.includes("high demand") || errStr.includes("UNAVAILABLE")) {
+        console.warn(`⚠️ [Gemini] ${preferredModel} đang quá tải (503). Đang tự động chuyển sang ${fallbackModel}...`);
+        usedModel = fallbackModel;
+        response = await ai.models.generateContent({
+          model: fallbackModel,
+          contents,
+          config: {
+            systemInstruction,
+            temperature: 0.7,
+          },
+        });
+      } else {
+        throw err;
+      }
+    }
 
     const candidateText = response?.text?.trim() || "Cú Vàng đang lắng nghe em đây! Em hãy hỏi Cú Vàng về bài toán này nhé! ⭐";
 
@@ -121,7 +145,7 @@ Quy tắc trả lời:
       isLiveAI: true,
       reply: candidateText,
       text: candidateText,
-      model,
+      model: usedModel,
     });
   } catch (error: unknown) {
     console.error("Lỗi API Gemini:", error);
